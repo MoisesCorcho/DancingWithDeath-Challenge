@@ -1,0 +1,7 @@
+DB_HOST="localhost"
+DB_NAME="asimov-challenge"
+DB_USER="root"
+DB_PASS=""
+
+START_TIME="09:00"
+END_TIME="17:00"

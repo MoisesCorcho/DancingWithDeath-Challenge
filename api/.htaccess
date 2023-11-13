@@ -1,8 +1,21 @@
+# Activates the Apache mod_rewrite engine to enable URL rewriting.
 RewriteEngine On
+
+# Specifies the base URL for the rewrite rules from the web root to the API endpoint.
 RewriteBase /proyectos/Moises/Php/Asimov-Challenge/api
+
+# Conditions to check if the requested URL is not a file, directory, or symlink.
+# - RewriteCond %{REQUEST_FILENAME} !-f: If the request is not a file.
+# - RewriteCond %{REQUEST_FILENAME} !-d: If the request is not a directory.
+# - RewriteCond %{REQUEST_FILENAME} !-l: If the request is not a symbolic link.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-l
+
+# Redirects all requests to index.php if they don't match an existing file, directory, or symlink
+# - RewriteRule . index.php [L]: For any request that doesn't match an existing resource,
+#   internally redirect it to the index.php file and stop further processing with [L] (Last) flag
 RewriteRule . index.php [L]
 
+# Sets the HTTP_AUTHORIZATION variable for requests containing an Authorization header
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1

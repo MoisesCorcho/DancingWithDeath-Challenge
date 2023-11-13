@@ -3,18 +3,33 @@
 namespace src\models;
 
 use src\libraries\Database;
-use PDO;
 
+/**
+ * Class Appointment
+ * 
+ * Represents a model for managing appointments in the database.
+ */
 class Appointment
 {
 
+    /**
+     * @var Database $db Instance of the Database class for handling database operations.
+     */
     private Database $db;
 
+    /**
+     * Constructor method to initialize the Database instance.
+     */
     public function __construct()
     {
         $this->db = new Database;
     }
 
+    /**
+     * Retrieves all appointments from the database.
+     *
+     * @return array An array of appointments sorted by date in descending order.
+     */
     public function getAppointments() : array
     {
         $sql = "SELECT * FROM appointments ORDER BY date DESC";
@@ -27,6 +42,12 @@ class Appointment
         return $appointments;
     }
 
+    /**
+     * Retrieves a specific appointment based on its ID.
+     *
+     * @param mixed $id The ID of the appointment to be retrieved.
+     * @return array|bool Returns an array representing the appointment data if found, otherwise false.
+     */
     public function getAppointment($id): array | bool
     {
         $sql = "SELECT * FROM appointments WHERE id = :id";
@@ -38,6 +59,12 @@ class Appointment
         return $this->db->single() !== false? (array) $this->db->single(): false;
     }
 
+    /**
+     * Creates a new appointment entry in the database.
+     *
+     * @param array $data An array containing appointment data (date, start time, email).
+     * @return int The ID of the newly created appointment.
+     */
     public function createAppointment(array $data): int
     {
         $sql = "INSERT INTO appointments (date, start_time, email) VALUES (:date, :start_time, :email)";
@@ -51,6 +78,13 @@ class Appointment
         return $this->db->returnLastIdInserted();
     }
 
+    /**
+     * Updates an existing appointment in the database.
+     *
+     * @param array $data An array containing appointment data to be updated.
+     * @param string $id The ID of the appointment to be updated.
+     * @return int The number of rows affected by the update operation.
+     */
     public function updateAppointment(array $data, string $id): int
     {   
         $dataKeys = array_keys($data);
@@ -77,6 +111,12 @@ class Appointment
         return $this->db->rowCount();
     }
 
+    /**
+     * Deletes an appointment from the database.
+     *
+     * @param string $id The ID of the appointment to be deleted.
+     * @return int The number of rows affected by the delete operation.
+     */
     public function deleteAppointment(string $id): int
     {
         $sql = "DELETE FROM appointments WHERE id = :id";
@@ -88,6 +128,12 @@ class Appointment
         return $this->db->rowCount();
     }
 
+    /**
+     * Checks if a given time for an appointment is valid and available.
+     *
+     * @param mixed $data An array containing date and start time information.
+     * @return array Returns an array of appointments that meet the time criteria.
+     */
     public function knowIfTimeIsValid($data): array
     {   
         $sql = "SELECT TIMEDIFF(:time, start_time) AS diferencia, start_time 

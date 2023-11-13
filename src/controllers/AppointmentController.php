@@ -2,8 +2,9 @@
 
 namespace src\controllers;
 
-use DateTime;
 use src\models\Appointment;
+use src\responses\Responses;
+use src\validations\Validations;
 
 /**
  * Appointment Controller class
@@ -13,6 +14,11 @@ use src\models\Appointment;
 class AppointmentController
 {
 
+    /**
+     * Constructor for the AppointmentController
+     *
+     * @param Appointment $apmtModel The Appointment model instance
+     */
     public function __construct(
         private Appointment $apmtModel = new Appointment
     )
@@ -35,7 +41,7 @@ class AppointmentController
             } else if ($method === "POST") {
                 $this->create();
             } else {
-                $this->respondMethodNotAllowed("GET, POST");
+                Responses::respondMethodNotAllowed("GET, POST");
                 return;
             }
 
@@ -52,7 +58,7 @@ class AppointmentController
                     $this->destroy($id);
                 break;
                 default:
-                    $this->respondMethodNotAllowed("GET, PATCH, DELETE");
+                    Responses::respondMethodNotAllowed("GET, PATCH, DELETE");
             }
         }
     }
@@ -78,12 +84,12 @@ class AppointmentController
         $appointment = $this->apmtModel->getAppointment($id);
         
         if ($appointment === false) {
-            $this->respondNotFound($id);
+            Responses::respondNotFound($id);
             return;
         }
 
         echo json_encode([
-            "message" => "Appointment found successfully", 
+            "message" => "Appointment found successfully.", 
             "data" => $appointment
         ]);
     }
@@ -95,42 +101,21 @@ class AppointmentController
      */
     public function create(): void
     {
-        // Get data
+        // Extracts input data from the request body.
         $data = json_decode(file_get_contents("php://input"), true);
 
-        // Validate empty fields
-        $validateFields = $this->validateFields($data);
+        // Call validations
+        $validations = $this->validations($data);
 
-        if ($validateFields === false) {
-            return;
-        }
-
-        // Validate date format
-        $validate_date = $this->validateDate($data["date"]);
-
-        if ($validate_date === false) {
-            return;
-        }
-
-        // Validate time format
-        $validateTime = $this->validateTime($data["start_time"]);
-
-        if ($validateTime === false) {
-            return;
-        }
-
-        // Validate cross hours
-        $crossHours = $this->apmtModel->knowIfTimeIsValid($data);
-
-        if (count($crossHours) !== 0) {
-            $this->respondCrossHours();
+        // Returns if any validation fails.
+        if ($validations === false) {
             return;
         }
 
         // Create appointment
         $response = $this->apmtModel->createAppointment($data);
 
-        $this->respondCreated($response);
+        Responses::respondCreated($response);
     }
 
     /**
@@ -141,14 +126,25 @@ class AppointmentController
      */
     public function update(string $id): void
     {
+        // Get the appointment.
         $appointment = $this->apmtModel->getAppointment($id);
         
+        // If the appointment does not exists.
         if ($appointment === false) {
-            $this->respondNotFound($id);
+            Responses::respondNotFound($id);
             return;
         }
 
+        // Extracts input data from the request body.
         $data = json_decode(file_get_contents("php://input"), true);
+
+        // Call validations
+        $validations = $this->validations($data);
+
+        // Returns if any validation fails.
+        if ($validations === false) {
+            return;
+        }
 
         $rows = $this->apmtModel->updateAppointment($data, $id);
 
@@ -166,7 +162,14 @@ class AppointmentController
      */
     public function destroy(string $id): void
     {
-
+        // Get the appointment.
+        $appointment = $this->apmtModel->getAppointment($id);
+        
+        // If the appointment does not exists.
+        if ($appointment === false) {
+            Responses::respondNotFound($id);
+            return;
+        }
 
         $rows = $this->apmtModel->deleteAppointment($id);
 
@@ -177,174 +180,50 @@ class AppointmentController
     }
 
     /**
-     * Response for when html methods are not allowed.
+     * Perform validations on the provided data.
      *
-     * @param string $allowed_methods methods that are allowed.
-     * @return void
+     * @param array $data The data to be validated
+     * @return bool Indicates if all validations pass
      */
-    public function respondMethodNotAllowed(string $allowed_methods): void 
+    public function validations(array $data): bool
     {
-        http_response_code(405);
-        header("Allow: $allowed_methods");
-    }
+        // Validate empty fields
+        $validateFields = Validations::validateFields($data);
 
-    /**
-     * Response to know when an appointment was successfully created.
-     *
-     * @param integer $id the appointment id
-     * @return void
-     */
-    public function respondCreated(int $id): void
-    {
-        http_response_code(200);
-        echo json_encode(["message" => "Appointment created successfully", "id" => $id]);
-    }
-
-    /**
-     * Response to know when the date format is incorret.
-     *
-     * @return void
-     */
-    public function respondDateFormatIsNotCorrect(): void
-    {
-        http_response_code(400);
-        echo json_encode(["message" => "Incorrect date format. The correct format is 'Y-m-d'"]);
-    }
-
-    /**
-     * Response to know when the time format is incorrect.
-     *
-     * @return void
-     */
-    public function respondTimeFormatIsNotCorrect(): void
-    {
-        http_response_code(400);
-        echo json_encode(["message" => "Incorrect time format. The correct format is 'H:m'"]);
-    }
-
-    /**
-     * Response to know when the time is invalid.
-     *
-     * @return void
-     */
-    public function respondTimeIsNotValid(): void
-    {
-        http_response_code(400);
-        echo json_encode(["message" => "The time must be into the accepted hours. From {$_ENV['START_TIME']} to {$_ENV['END_TIME']}"]);
-    }
-
-    /**
-     * Response to know when the appointment intersects 
-     * with other appointments
-     *
-     * @return void
-     */
-    public function respondCrossHours(): void
-    {
-        http_response_code(409);
-        echo json_encode(["message" => "This appointment conflict with an existing appointment."]);
-    }
-
-    /**
-     * Response to know when an appointment was not found.
-     *
-     * @param string $id the appointment id
-     * @return void
-     */
-    private function respondNotFound(string $id): void
-    {
-        http_response_code(404);
-        echo json_encode(["message" => "Appointment with ID $id not found"]);
-    }
-
-    /**
-     * Response to know which fields are empty.
-     *
-     * @param array $dataErrors
-     * @return void
-     */
-    public function respondEmptyFields(array $dataErrors): void
-    {
-        http_response_code(409);
-        
-        $arrResponse = [];
-
-        foreach($dataErrors as $err) {
-
-            if ($err !== null) {
-                array_push($arrResponse, $err);
-            }
-        }
-
-        echo json_encode(["message" => "Empty fields.", "empty_fields" => $arrResponse]);
-    }
-
-    /**
-     * Validate the format date
-     *
-     * @param string $date 
-     * @return boolean
-     */
-    public function validateDate(string $date): bool
-    {
-        $result = DateTime::createFromFormat('Y-m-d', $date);
-
-        if ($result === false) {
-            $this->respondDateFormatIsNotCorrect();
-            return false;
-        } 
-
-        return true;
-    }
-
-    /**
-     * Validate the format time
-     *
-     * @param string $time
-     * @return boolean
-     */
-    public function validateTime(string $time): bool
-    {
-        if (!preg_match("/^\d{2}:\d{2}$/", $time)) {
-            $this->respondTimeFormatIsNotCorrect();
+        if ($validateFields === false) {
             return false;
         }
 
-        if ($time < $_ENV["START_TIME"] || $time > $_ENV["END_TIME"]) {
-            $this->respondTimeIsNotValid();
+        // Validate date format
+        $validate_date = Validations::validateDate($data["date"]);
+
+        if ($validate_date === false) {
+            return false;
+        }
+
+        // Validate time format
+        $validateTime = Validations::validateTime($data["start_time"]);
+
+        if ($validateTime === false) {
+            return false;
+        }
+
+        // Validate cross hours
+        $crossHours = $this->apmtModel->knowIfTimeIsValid($data);
+
+        if (count($crossHours) !== 0) {
+            Responses::respondCrossHours();
+            return false;
+        }
+
+        // Validate that the date and time have not expired
+        $dateTimeExpired = Validations::validateTimeAndDateAreNotInThePast($data);
+
+        if ($dateTimeExpired === false) {
             return false;
         }
 
         return true;
-    }
-
-    /**
-     * Validate if the fields are empty
-     *
-     * @param array $data
-     * @return boolean
-     */
-    public function validateFields(array $data): bool
-    {
-
-        $dataErrors = [
-            "dateErrors" => null,
-            "timeErrors" => null
-        ];
-
-        if ( empty($data["date"]) ) {
-            $dataErrors["dateErrors"] = "Date field is empty.";
-        }  
-
-        if ( empty($data["start_time"]) ) {
-            $dataErrors["timeErrors"] = "Start_time field is empty.";
-        }
-
-        if ( !isset($dataErrors["dateErrors"]) && !isset($dataErrors["timeErrors"]) ) {
-            return true;
-        }
-
-        return false;
     }
 
 }

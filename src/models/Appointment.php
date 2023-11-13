@@ -136,17 +136,28 @@ class Appointment
      */
     public function knowIfTimeIsValid($data): array
     {   
+        /**
+         * SQL query to determine if a given time is available for an appointment
+         * 
+         * Uses the TIMEDIFF function to calculate the time difference between :time and the start_time in the database.
+         * Filters appointments based on two conditions using HAVING:
+         * diferencia < '01:00:00': Ensures the difference between :time and start_time is less than one hour.
+         * diferencia > '-01:00:00': Ensures the difference is greater than negative one hour (within one hour in the past).
+         * This SQL query aims to find appointments where the start time is within an hour (plus or minus)
+         */
         $sql = "SELECT TIMEDIFF(:time, start_time) AS diferencia, start_time 
                 FROM appointments 
                 WHERE date = :date
                 HAVING diferencia < '01:00:00' AND diferencia > '-01:00:00'
                 ";
 
+        // Set up the SQL query with provided data
         $this->db->query($sql);
         $this->db->bind(":time", $data["start_time"]);
         $this->db->bind(":date", $data["date"]);
         $this->db->execute();
 
+        // Return the result set from the query, indicating available appointments within the time frame
         return $this->db->resultSet();
     }
 

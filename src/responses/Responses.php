@@ -135,4 +135,15 @@ class Responses
         echo json_encode(["message" => "You can not create an appointment with a time before the current time."]);
     }
 
+    /**
+     * Response to know if the date of the appointment is saturday or sunday
+     *
+     * @return void
+     */
+    public static function respondDateIsWeekend(): void
+    {
+        http_response_code(409);
+        echo json_encode(["message" => "You can not create an appointment on weekends."]);
+    }
+
 }

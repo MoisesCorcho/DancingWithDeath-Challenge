@@ -62,7 +62,8 @@ class Validations
 
         $dataErrors = [
             "dateErrors" => null,
-            "timeErrors" => null
+            "timeErrors" => null,
+            "emailErrors" => null
         ];
 
         if ( empty($data["date"]) ) {
@@ -73,7 +74,11 @@ class Validations
             $dataErrors["timeErrors"] = "Start_time field is empty.";
         }
 
-        if ( !isset($dataErrors["dateErrors"]) && !isset($dataErrors["timeErrors"]) ) {
+        if ( empty($data["email"]) ) {
+            $dataErrors["emailErrors"] = "email field is empty.";
+        }
+
+        if ( !isset($dataErrors["dateErrors"]) && !isset($dataErrors["timeErrors"]) && !isset($dataErrors["emailErrors"])) {
             return true;
         }
 
@@ -100,6 +105,24 @@ class Validations
 
         if ($data["start_time"] < $currentTime) {
             Responses::respondExpiredTime();
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate that the date of the appointment is not saturday or sunday
+     *
+     * @return boolean
+     */
+    public static function validateIsNotWeekend(array $data): bool
+    {
+        // Get the name of the day of the week
+        $dayOfWeek = DateTime::createFromFormat('Y-m-d', $data["date"])->format('l');
+
+        if ($dayOfWeek === 'Saturday' || $dayOfWeek === 'Sunday') {
+            Responses::respondDateIsWeekend();
             return false;
         }
 

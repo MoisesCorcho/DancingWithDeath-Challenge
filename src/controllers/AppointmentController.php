@@ -223,6 +223,13 @@ class AppointmentController
             return false;
         }
 
+        // Validate if the date is saturday or sunday
+        $dateIsNotWeekend = Validations::validateIsNotWeekend($data);
+
+        if ($dateIsNotWeekend === false) {
+            return false;
+        }
+
         return true;
     }
 

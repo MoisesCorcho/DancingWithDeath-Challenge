@@ -103,9 +103,12 @@ class Validations
             return false;
         }
 
-        if ($data["start_time"] < $currentTime) {
-            Responses::respondExpiredTime();
-            return false;
+        if ($data["date"] === $currentDate) {
+
+            if ($data["start_time"] < $currentTime) {
+                Responses::respondExpiredTime();
+                return false;
+            }
         }
 
         return true;
